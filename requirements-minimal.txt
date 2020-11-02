@@ -1,0 +1,4 @@
+torch
+tqdm
+transformers
+fuzzywuzzy==0.18.0
