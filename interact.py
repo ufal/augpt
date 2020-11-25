@@ -14,7 +14,7 @@ def interact(pipeline, args):
         conversation = pipeline(conversation)
         if args.debug:
             print(f'belief:{conversation.generated_belief}')
-            print(f'db:{", ".join(f"{d}: {len(r)}" for d, r in conversation.database_results.items())}')
+            print(f'db:{", ".join(f"{d}: {r[0]}" for d, r in conversation.database_results.items())}')
             print(f'raw:{conversation.raw_response}')
         elif args.raw:
             print(f'output:{conversation.raw_response}')
