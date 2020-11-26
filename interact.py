@@ -1,4 +1,5 @@
-#!/bin/env python
+#!/usr/bin/env python3
+
 import logging
 import argparse
 from pipelines import AuGPTConversation
