@@ -11,6 +11,10 @@ def interact(pipeline, args):
     conversation = AuGPTConversation()
     while True:
         user = input('user:')
+        if user == 'reset':
+            conversation = AuGPTConversation()
+            continue
+
         conversation.add_user_input(user)
         conversation = pipeline(conversation)
         if args.debug:
