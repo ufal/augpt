@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 import sqlite3
 import json
 import os
@@ -1146,7 +1146,7 @@ def download(version='2.0'):
     # Generating blacklist
     logger.info('generating blacklist')
     cwd = os.path.dirname(os.path.abspath(__file__))
-    subprocess.run([os.path.join(cwd, 'build_multiwoz_blacklist.py'), '--dataset', 'multiwoz-2.0'], cwd=cwd)
+    subprocess.run(['python', os.path.join(cwd, 'build_multiwoz_blacklist.py'), '--dataset', 'multiwoz-2.0'], cwd=cwd)
 
 
 if __name__ == "__main__":

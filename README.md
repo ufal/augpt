@@ -1,4 +1,5 @@
 # AuGPT
+![tests](https://github.com/ufal/augpt/workflows/tests/badge.svg)
 ## Getting started
 Start with creating a python 3.7 venv and installing requirements.txt. Python 3.8 is **not supported** by ConvLab-2. Also,
 newer version of transformers is unfortunatelly not supported by ConvLab-2, therefore you need to install the legacy

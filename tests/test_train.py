@@ -1,12 +1,6 @@
-from train import Trainer, parse_args
 import dataclasses
 import tempfile
-import data
 import pytest
-import wandb
-import data.evaluation.multiwoz
-import tensorboardX
-from unittest.mock import MagicMock
 
 
 @pytest.fixture()
@@ -21,6 +15,13 @@ def patch_dataset(dataset):
 
 @pytest.mark.train
 def test_train(logger, monkeypatch):
+    import wandb
+    import data
+    from train import Trainer, parse_args
+    import data.evaluation.multiwoz
+    from unittest.mock import MagicMock
+    import tensorboardX
+
     with tempfile.TemporaryDirectory() as d:
         with monkeypatch.context() as m:
             m.setattr(wandb, 'run', MagicMock())

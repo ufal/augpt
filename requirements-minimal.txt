@@ -1,4 +1,5 @@
 torch
+torchvision
 tqdm
 transformers
 fuzzywuzzy==0.18.0

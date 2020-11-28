@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 import re
 import sys
 import json
@@ -857,7 +857,7 @@ def download():
     # Generating blacklist
     logger.info('Generating blacklist')
     cwd = os.path.dirname(os.path.abspath(__file__))
-    subprocess.run([os.path.join(cwd, 'build_multiwoz_blacklist.py'), '--dataset', 'multiwoz-2.1'], cwd=cwd)
+    subprocess.run(['python', os.path.join(cwd, 'build_multiwoz_blacklist.py'), '--dataset', 'multiwoz-2.1'], cwd=cwd)
 
 
 if __name__ == "__main__":
