@@ -301,6 +301,11 @@ class Database:
         name = name.strip()
         return name
 
+    @staticmethod
+    def _to_minutes(time):
+        hour, minutes = tuple(map(int, time.split(':')))
+        return minutes + 60 * hour
+
     def __call__(self, belief, return_results=False):
         belief = Database.hack_query(belief)
         all_results = OrderedDict()
@@ -315,6 +320,12 @@ class Database:
                                 for slot, val in domain_bs.items() if slot not in blocked_slots]
                     result = self.inner.query(domain, query_bs)
                     result = [Database.map_database_row(domain, k, domain_bs) for k in result]
+
+                    # Implement sorting missing in convlab
+                    if domain == 'train' and 'arrive by' in domain_bs:
+                        result.sort(key=lambda x: self._to_minutes(x['arrive by']), reverse=True)
+                    elif domain == 'train' and 'leave at' in domain_bs:
+                        result.sort(key=lambda x: self._to_minutes(x['leave at']))
                     return result
                 result = query_single(domain_bs)
                 if len(result) == 0 and 'name' in domain_bs and self._clear_name(domain_bs) in self._name_map:
