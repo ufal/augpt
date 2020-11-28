@@ -19,6 +19,7 @@ def patch_dataset(dataset):
     return dataclasses.replace(dataset, items=[dataset[i] for i in range(2)], transform=lambda x: x)
 
 
+@pytest.mark.train
 def test_train(logger, monkeypatch):
     with tempfile.TemporaryDirectory() as d:
         with monkeypatch.context() as m:
@@ -73,15 +74,6 @@ def test_train(logger, monkeypatch):
 
             # Patch publish artifact
             trainer._publish_artifact = lambda: None
-
-            # Patch analyzer
-            old_analyzer = data.evaluation.multiwoz.convlab.ConvLabAnalyzer
-            def hack_convlab_analyzer(*args, **kwargs):  # noqa:E306
-                from convlab2.nlu.svm.multiwoz import SVMNLU
-                a = old_analyzer(*args, **kwargs)
-                m.setattr(a.user_agent, 'nlu', SVMNLU())
-                return a
-            m.setattr(data.evaluation.multiwoz.convlab, 'ConvLabAnalyzer', hack_convlab_analyzer)
 
             # Run train
             trainer.train()

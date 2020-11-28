@@ -5,7 +5,6 @@ import argparse
 import random
 import math
 import re
-import sys
 import os
 from tqdm import tqdm
 import requests

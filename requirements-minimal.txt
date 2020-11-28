@@ -1,4 +1,4 @@
 torch
 tqdm
-transformers==3.0.2
+transformers
 fuzzywuzzy==0.18.0

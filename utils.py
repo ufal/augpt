@@ -294,8 +294,7 @@ class AutoDatabase:
             database_file = pretrained_model_name_or_path
         else:
             database_file = transformers.file_utils.hf_bucket_url(
-                pretrained_model_name_or_path, filename='database.zip', use_cdn=False
-            )
+                pretrained_model_name_or_path, filename='database.zip')
 
         try:
             # Load from URL or cache if already cached
@@ -352,8 +351,7 @@ class AutoLexicalizer:
             lexicalizer_file = pretrained_model_name_or_path
         else:
             lexicalizer_file = transformers.file_utils.hf_bucket_url(
-                pretrained_model_name_or_path, filename='lexicalizer.zip', use_cdn=False
-            )
+                pretrained_model_name_or_path, filename='lexicalizer.zip')
 
         try:
             # Load from URL or cache if already cached
