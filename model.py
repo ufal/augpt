@@ -317,9 +317,10 @@ class ModelPredictor:
                 pad_token_id=eos_token_id,
                 do_sample=False)
             # https://github.com/huggingface/transformers/blob/master/examples/text-generation/run_generation.py
+
             prediction = greedy_output[0]
             offset = len(sample[0])
-            prediction = prediction[:offset + (prediction[offset:] == eos_token_id).int().argmax()]
+            prediction = prediction[:offset + (prediction[offset:] != eos_token_id).int().sum()]
             prediction = self.tokenizer.decode(prediction, skip_special_tokens=False,
                                                clean_up_tokenization_spaces=True)
             prefix = self.tokenizer.decode(sample[0], clean_up_tokenization_spaces=True) +\
@@ -351,7 +352,7 @@ class ModelPredictor:
             # https://github.com/huggingface/transformers/blob/master/examples/text-generation/run_generation.py
             prediction = greedy_output[0]
             offset = len(sample[0])
-            prediction = prediction[:offset + (prediction[offset:] == eos_token_id).int().argmax()]
+            prediction = prediction[:offset + (prediction[offset:] != eos_token_id).int().sum()]
             prediction = self.tokenizer.decode(prediction, skip_special_tokens=False,
                                                clean_up_tokenization_spaces=True)
             prediction = prediction[len(self.tokenizer.decode(sample[0], clean_up_tokenization_spaces=True)):]

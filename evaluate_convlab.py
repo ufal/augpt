@@ -5,7 +5,7 @@ import logging
 import torch
 import transformers
 from utils import setup_logging, pull_model  # noqa:E402
-import data.evaluation.multiwoz.convlab.convlab  # noqa: E402
+import data.evaluation.multiwoz.convlab  # noqa: E402
 import nltk
 
 
