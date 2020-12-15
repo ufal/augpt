@@ -9,7 +9,22 @@ import transformers
 import zipfile
 from collections import OrderedDict
 
+# We will fix transformers remote url resolution for older transformer versions
+def _fix_transformers_url():
+    HUGGINGFACE_CO_PREFIX = "https://huggingface.co/{model_id}/resolve/{revision}/{filename}"
+    from packaging import version
+    from typing import Optional
+    if version.parse(transformers.__version__) < version.parse('3.5'):
+        def hf_bucket_url(model_id: str, filename: str, subfolder: Optional[str] = None, revision: Optional[str] = None, mirror=None, **kwargs) -> str:
+            if subfolder is not None:
+                filename = f"{subfolder}/{filename}"
 
+            if revision is None:
+                revision = "main"
+            return HUGGINGFACE_CO_PREFIX.format(model_id=model_id, revision=revision, filename=filename)
+        setattr(transformers.file_utils, 'hf_bucket_url', hf_bucket_url)
+
+_fix_transformers_url()    
 logger = logging.getLogger()
 DATASETS_PATH = os.path.join(os.path.expanduser(os.environ.get('DATASETS_PATH', '~/datasets')), 'augpt')
 
@@ -294,7 +309,8 @@ class AutoDatabase:
             database_file = pretrained_model_name_or_path
         else:
             database_file = transformers.file_utils.hf_bucket_url(
-                pretrained_model_name_or_path, filename='database.zip')
+                pretrained_model_name_or_path, filename='database.zip'
+            )
 
         try:
             # Load from URL or cache if already cached
@@ -351,7 +367,8 @@ class AutoLexicalizer:
             lexicalizer_file = pretrained_model_name_or_path
         else:
             lexicalizer_file = transformers.file_utils.hf_bucket_url(
-                pretrained_model_name_or_path, filename='lexicalizer.zip')
+                pretrained_model_name_or_path, filename='lexicalizer.zip'
+            )
 
         try:
             # Load from URL or cache if already cached

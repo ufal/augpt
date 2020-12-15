@@ -310,6 +310,8 @@ class Database:
         belief = Database.hack_query(belief)
         all_results = OrderedDict()
         for domain, domain_bs in belief.items():
+            if domain not in self.supported_domains:
+                continue  # skip unsupported domains
             if self.domain_not_empty(domain_bs) or \
                     domain in [d.lower() for d in {'Police', 'Hospital'}]:
                 def query_single(domain_bs):
