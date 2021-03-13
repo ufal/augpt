@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_dialogs', type=int, default=1000)
     parser.add_argument('--resume', default=None)
     parser.add_argument('--wandb', action='store_true')
+    parser.add_argument('--num-beams', type=int, default=None)
     args = parser.parse_args()
     setup_logging()
     logger = logging.getLogger()
@@ -43,6 +44,8 @@ if __name__ == '__main__':
 
     analyzer = data.evaluation.multiwoz.convlab.ConvLabAnalyzer()
     pipeline = transformers.pipeline('augpt-conversational', args.model, device=0 if torch.cuda.is_available() else -1)
+    if args.num_beams is not None:
+        pipeline.model.config.num_beams = args.num_beams
 
     # Analyze
     result = analyzer(pipeline, args.num_dialogs)

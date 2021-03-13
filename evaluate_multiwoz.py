@@ -46,6 +46,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', default=None)
     parser.add_argument('--dataset', default='multiwoz-2.1-test')
     parser.add_argument('--wandb', action='store_true')
+    parser.add_argument('--num-beams', type=int, default=None)
     args = parser.parse_args()
     if args.resume is not None and args.model is None:
         args.model = f'wandb:{args.resume}'
@@ -83,6 +84,8 @@ if __name__ == '__main__':
     else:
         logger.info('generating responses')
         pipeline = transformers.pipeline('augpt-conversational', args.model, device=0 if torch.cuda.is_available() else -1)
+        if args.num_beams is not None:
+            pipeline.model.config.num_beams = args.num_beams
         responses, beliefs, gold_responses, delex_responses, delex_gold_responses = \
             generate_predictions(pipeline, dataset, os.path.join(wandb.run.dir if wandb and wandb.run else '.', 'test-predictions.txt'))
     logger.info('evaluation started')
