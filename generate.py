@@ -5,6 +5,8 @@ import torch
 import argparse
 import dataclasses
 import itertools
+import os
+import shutil
 from collections import OrderedDict
 from data.utils import DialogDatasetItem
 from data.utils import BeliefParser, InsertLabelsTransformation
@@ -150,9 +152,15 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', default='multiwoz-2.1-test')
     parser.add_argument('--oracle-belief', action='store_true')
     parser.add_argument('--oracle-db', action='store_true')
+    parser.add_argument('--wandb', action='store_true')
     args = parser.parse_args()
     setup_logging()
     logger = logging.getLogger()
+
+    if args.wandb:
+        import wandb
+        wandb.init(job_type='evaluation', config=args)
+        args = argparse.Namespace(**wandb.config)
 
     model_name = pull_model(args.model)
     pipeline = transformers.pipeline('augpt-conversational', device=0 if torch.cuda.is_available() else -1)
@@ -162,3 +170,10 @@ if __name__ == '__main__':
     dataset = load_dataset(args.dataset)
     generate_predictions(pipeline, dataset, args.file, oracle_belief=args.oracle_belief,
                          orable_database_results=args.oracle_db)
+
+    # Copy file to wandb
+    if args.wandb:
+        fname = os.path.split(args.file)[-1]
+        wandb_generated_path = os.path.join(wandb.run.dir, fname)
+        shutil.copy(args.file, wandb_generated_path)
+        wandb.save(fname)
