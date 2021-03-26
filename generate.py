@@ -1,5 +1,6 @@
 #!/bin/env python
 import logging
+from typing import List
 import torch
 import argparse
 import dataclasses
@@ -27,7 +28,7 @@ def conversation_to_sample(conversation: AuGPTConversation):
                              database=database)
 
 
-def sample_to_conversation(sample):
+def sample_to_conversation(sample, oracle_belief=False, oracle_database_results=False):
     conversation = AuGPTConversation()
     conversation.new_user_input = sample.context[-1]
     arr, other = conversation.generated_responses, conversation.past_user_inputs
@@ -36,6 +37,10 @@ def sample_to_conversation(sample):
         arr, other = other, arr
     arr.reverse()
     other.reverse()
+    if oracle_belief:
+        conversation.oracle_belief = sample.raw_belief
+    if oracle_database_results:
+        conversation.database_results = sample.database
     return conversation
 
 
@@ -50,10 +55,57 @@ def format_samples(samples):
     return formatted
 
 
-def generate_predictions(pipeline, dataset, output_file='predictions.txt'):
+@dataclasses.dataclass
+class GeneratedPredictions:
+    responses: List = dataclasses.field(default_factory=list)
+    delex_responses: List = dataclasses.field(default_factory=list)
+    beliefs: List = dataclasses.field(default_factory=list)
+    gold_responses: List = dataclasses.field(default_factory=list)
+    gold_delex_responses: List = dataclasses.field(default_factory=list)
+    gold_beliefs: List = dataclasses.field(default_factory=list)
+
+    def is_valid(self):
+        n = len(self.responses)
+        return len(self.delex_responses) == n and \
+            len(self.beliefs) == n and \
+            len(self.gold_responses) == n and \
+            len(self.gold_delex_responses) == n and \
+            len(self.gold_beliefs) == n
+
+    @classmethod
+    def load_predictions(cls, file):
+        predictions = cls()
+        parser = BeliefParser()
+        for line in file:
+            line = line.rstrip()
+            if line.startswith('GT:'):
+                predictions.gold_responses.append(line[len('GT:'):])
+            elif line.startswith('GTD:'):
+                predictions.gold_delex_responses.append(line[len('GTD:'):])
+            elif line.startswith('BF:'):
+                bf = line[len('BF:'):]
+                bf = parser(bf)
+                assert bf is not None
+                predictions.gold_beliefs.append(bf)
+            elif line.startswith('RD:'):
+                predictions.delex_responses.append(line[len('RD:'):])
+            elif line.startswith('R:'):
+                r = line[len('R:'):]
+                predictions.responses.append(r)
+            elif line.startswith('GBF:'):
+                bf = line[len('GBF:'):]
+                bf = parser(bf)
+                assert bf is not None
+                predictions.gold_beliefs.append(bf)
+        assert predictions.is_valid()
+        return predictions
+
+
+def generate_predictions(pipeline, dataset, output_file='predictions.txt', oracle_belief=False, orable_database_results=False):
     belief_parser = BeliefParser()
     add_labels = InsertLabelsTransformation('U:', 'S:', 'D:', 'BF:')
     gold_responses = []
+    gold_beliefs = []
     responses = []
     delex_responses = []
     delex_gold_responses = []
@@ -67,7 +119,9 @@ def generate_predictions(pipeline, dataset, output_file='predictions.txt'):
             print(f'U:{sample.context[-1]}', file=fout)
             print(f'GT:{sample.raw_response}', file=fout)
             print(f'GTD:{sample.response}', file=fout)
-            conversation = sample_to_conversation(sample)
+            print(f'GBF:{sample.belief}', file=fout)
+            gold_beliefs.append(sample.belief)
+            conversation = sample_to_conversation(sample, oracle_belief=oracle_belief, oracle_database_results=orable_database_results)
             gold_responses.append(sample.raw_response)
             delex_gold_responses.append(sample.response)
             conversation = pipeline(conversation)
@@ -85,7 +139,8 @@ def generate_predictions(pipeline, dataset, output_file='predictions.txt'):
             beliefs.append(raw_belief)
             responses.append(conversation.generated_responses[-1])
             delex_responses.append(conversation.raw_response)
-    return responses, beliefs, gold_responses, delex_responses, delex_gold_responses
+    return GeneratedPredictions(
+        responses, delex_responses, beliefs, gold_responses, delex_gold_responses, gold_beliefs)
 
 
 if __name__ == '__main__':
@@ -93,6 +148,8 @@ if __name__ == '__main__':
     parser.add_argument('--model', default='jkulhanek/augpt-mw-21')
     parser.add_argument('--file', default='predictions.txt')
     parser.add_argument('--dataset', default='multiwoz-2.1-test')
+    parser.add_argument('--oracle-belief', action='store_true')
+    parser.add_argument('--oracle-db', action='store_true')
     args = parser.parse_args()
     setup_logging()
     logger = logging.getLogger()
@@ -103,4 +160,5 @@ if __name__ == '__main__':
     # Generate
     from data import load_dataset
     dataset = load_dataset(args.dataset)
-    generate_predictions(pipeline, dataset, args.file)
+    generate_predictions(pipeline, dataset, args.file, oracle_belief=args.oracle_belief,
+                         orable_database_results=args.oracle_db)

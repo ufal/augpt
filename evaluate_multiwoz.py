@@ -10,7 +10,7 @@ from utils import setup_logging, pull_model  # noqa:E402
 from data.utils import BeliefParser, wrap_dataset_with_cache  # noqa: E402
 from data import load_dataset  # noqa: E402
 from data.evaluation.multiwoz import MultiWozEvaluator, compute_bleu_remove_reference  # noqa: E402
-from generate import generate_predictions  # noqa:E402
+from generate import generate_predictions, GeneratedPredictions  # noqa:E402
 from evaluation_utils import compute_delexicalized_bleu  # noqa:E402
 
 
@@ -80,17 +80,18 @@ if __name__ == '__main__':
         path = args.file
         if not os.path.exists(path):
             path = os.path.join(args.model, args.file)
-        responses, beliefs, gold_responses, delex_responses, delex_gold_responses = parse_predictions(dataset, path)
+        with open(path, 'r') as f:
+            predictions = GeneratedPredictions.load_predictions(f)
     else:
         logger.info('generating responses')
         pipeline = transformers.pipeline('augpt-conversational', args.model, device=0 if torch.cuda.is_available() else -1)
         if args.num_beams is not None:
             pipeline.model.config.num_beams = args.num_beams
-        responses, beliefs, gold_responses, delex_responses, delex_gold_responses = \
+        predictions = \
             generate_predictions(pipeline, dataset, os.path.join(wandb.run.dir if wandb and wandb.run else '.', 'test-predictions.txt'))
     logger.info('evaluation started')
     evaluator = MultiWozEvaluator(dataset, is_multiwoz_eval=True, logger=logger)
-    success, matches, domain_results = evaluator.evaluate(beliefs, delex_responses, progressbar=True)
+    success, matches, domain_results = evaluator.evaluate(predictions.beliefs, predictions.delex_responses, progressbar=True)
     logger.info('evaluation finished')
     logger.info(f'match: {matches:.4f}, success: {success:.4f}')
     logger.info('computing bleu')
@@ -100,12 +101,12 @@ if __name__ == '__main__':
             test_success=success,
         ))
     if dataset.lexicalizer is not None:
-        bleu = compute_bleu_remove_reference(responses, gold_responses)
+        bleu = compute_bleu_remove_reference(predictions.responses, predictions.gold_responses)
         logger.info(f'test bleu: {bleu:.4f}')
         if wandb and wandb.run:
             wandb.run.summary.update(dict(test_bleu=bleu))
 
-    delex_bleu = compute_delexicalized_bleu(delex_responses, delex_gold_responses)
+    delex_bleu = compute_delexicalized_bleu(predictions.delex_responses, predictions.gold_delex_responses)
     logger.info(f'test delex bleu: {delex_bleu:.4f}')
     if wandb and wandb.run:
         wandb.run.summary.update(dict(test_delex_bleu=delex_bleu))

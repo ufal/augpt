@@ -153,12 +153,16 @@ class AuGPTConversation(Conversation):
         self.generated_belief = None
         self.database_results = None
         self.raw_response = None
+        self.oracle_belief = None
+        self.oracle_database_results = None
 
     def add_user_input(self, *args, **kwargs):
         super().add_user_input(*args, **kwargs)
         self.generated_belief = None
         self.database_results = None
         self.raw_response = None
+        self.oracle_belief = None
+        self.oracle_database_results = None
 
 
 class AuGPTConversationalPipeline(transformers.Pipeline):
@@ -240,8 +244,12 @@ class AuGPTConversationalPipeline(transformers.Pipeline):
         with self.device_placement():
             contexts = AuGPTConversationalPipeline._get_contexts_from_conversations(conversations)
             original_belief_strs = self.predictor.predict_belief(contexts)
-            beliefs = list(map(self.parse_belief, original_belief_strs))
-            dbs_results = list(map(partial(self.database, return_results=True), beliefs))
+            orable_beliefs = [getattr(x, 'oracle_belief', None) for x in conversations]
+            orable_dbs_results = [getattr(x, 'oracle_database_results', None) for x in conversations]
+            beliefs = [oracle_belief if oracle_belief is not None else self.parse_belief(belief_str)
+                       for oracle_belief, belief_str in zip(orable_beliefs, original_belief_strs)]
+            dbs_results = [orable_db if orable_db is not None else self.database(bs, return_results=True)
+                           for orable_db, bs in zip(orable_dbs_results, beliefs)]
             dbs = [OrderedDict((k, x[0]) for k, x in db.items()) for db in dbs_results]
             delex_responses = self.predictor.predict_response(contexts, original_belief_strs, dbs)
             responses = [self._lexicalise(response, db, bf, ctx)
@@ -296,6 +304,8 @@ transformers.pipelines.SUPPORTED_TASKS["augpt-conversational"] = {
 
 # Utility function for transformers to call `pipeline('augpt-conversational')` with default model.
 __old_pipeline = transformers.pipeline
+
+
 def augpt_pipeline(task: str, model: Optional = None, *args, **kwargs) -> transformers.Pipeline:  # noqa
     if task == 'augpt-conversational':
         lexicalizer = kwargs.get('lexicalizer', None)

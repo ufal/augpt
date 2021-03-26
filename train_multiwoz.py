@@ -42,14 +42,13 @@ class MultiWozTrainer(Trainer):
         self.model.eval()
         dataset = load_dataset('multiwoz-2.1-test', use_goal=True)
         dataset = wrap_dataset_with_cache(dataset)
-        responses, beliefs, gold_responses, delex_responses, delex_gold_responses = \
-            generate_predictions(self.prediction_pipeline, dataset, 'test-predictions.txt')
+        predictions = generate_predictions(self.prediction_pipeline, dataset, 'test-predictions.txt')
         evaluator = MultiWozEvaluator(dataset, is_multiwoz_eval=True, logger=self.logger)
-        success, matches, domain_results = evaluator.evaluate(beliefs, delex_responses, progressbar=True)
+        success, matches, domain_results = evaluator.evaluate(predictions.beliefs, predictions.delex_responses, progressbar=True)
         self.logger.info('evaluation finished')
         self.logger.info('computing bleu')
-        bleu = compute_bleu_remove_reference(responses, gold_responses)
-        delex_bleu = compute_delexicalized_bleu(delex_responses, delex_gold_responses)
+        bleu = compute_bleu_remove_reference(predictions.responses, predictions.gold_responses)
+        delex_bleu = compute_delexicalized_bleu(predictions.delex_responses, predictions.gold_delex_responses)
         self.logger.info(f'test bleu: {bleu:.4f}')
         self.logger.info(f'delex test bleu: {delex_bleu:.4f}')
 

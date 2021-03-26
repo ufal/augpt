@@ -15,6 +15,17 @@ def compute_bleu(responses, gold_responses):
     return bleu
 
 
+def compute_rouge(responses, gold_responses):
+    from rouge import Rouge
+    responses = map(lambda x: x.lower(), responses)
+    responses = list(map(nltk.tokenize.word_tokenize, responses))
+    gold_responses = map(lambda x: x.lower(), gold_responses)
+    gold_responses = map(nltk.tokenize.word_tokenize, gold_responses)
+    gold_responses = list(map(lambda x: [x], gold_responses))
+    rouge = Rouge().get_scores(responses, gold_responses)
+    return rouge
+
+
 def compute_delexicalized_bleu(responses, gold_responses):
     token_regex = re.compile(r'\[([\w\s\d]+)\]')
     token_sub = partial(token_regex.sub, lambda x: x.group(1).upper().replace(' ', ''))
