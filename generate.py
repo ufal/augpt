@@ -163,7 +163,7 @@ if __name__ == '__main__':
         args = argparse.Namespace(**wandb.config)
 
     model_name = pull_model(args.model)
-    pipeline = transformers.pipeline('augpt-conversational', device=0 if torch.cuda.is_available() else -1)
+    pipeline = transformers.pipeline('augpt-conversational', model_name, device=0 if torch.cuda.is_available() else -1)
 
     # Generate
     from data import load_dataset
