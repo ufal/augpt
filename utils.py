@@ -100,6 +100,8 @@ class F1(Metric):
         self.fn += fn
 
     def report(self):
+        if self.tp == 0:
+            return 0
         return self.tp / (self.tp + 0.5 * (self.fp + self.fn))
 
 

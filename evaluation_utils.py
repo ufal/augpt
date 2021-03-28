@@ -18,12 +18,13 @@ def compute_bleu(responses, gold_responses):
 def compute_rouge(responses, gold_responses):
     from rouge import Rouge
     responses = map(lambda x: x.lower(), responses)
-    responses = list(map(nltk.tokenize.word_tokenize, responses))
+    responses = map(nltk.tokenize.word_tokenize, responses)
+    responses = list(map(lambda x: ' '.join(x), responses))
     gold_responses = map(lambda x: x.lower(), gold_responses)
     gold_responses = map(nltk.tokenize.word_tokenize, gold_responses)
-    gold_responses = list(map(lambda x: [x], gold_responses))
-    rouge = Rouge().get_scores(responses, gold_responses)
-    rouge = {f'{k}_{k1}': v for k, sub in rouge.items() for k1, v in sub.items()}
+    gold_responses = list(map(lambda x: ' '.join(x), gold_responses))
+    rouge = Rouge().get_scores(responses, gold_responses, avg=True)
+    rouge = {f'{k}-{k1}': v for k, sub in rouge.items() for k1, v in sub.items()}
     return rouge
 
 

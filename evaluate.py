@@ -3,9 +3,8 @@ import argparse
 import logging
 from itertools import chain
 from collections import defaultdict
-from utils import setup_logging, pull_model  # noqa:E402
+from utils import setup_logging  # noqa:E402
 from utils import Mean, F1
-from data.utils import BeliefParser
 from evaluation_utils import compute_bleu, compute_rouge
 from generate import GeneratedPredictions
 
@@ -15,34 +14,49 @@ def flatten_belief_state(bs):
 
 
 def compute_tp_fp_fn(gbs, bs):
-    tp = len(gbs_items.union(bs_items))
-    fp = len(bs_items - gbs_items))
-    fn = len(gbs_items - bs_items))
+    tp = len(gbs.intersection(bs))
+    fp = len(bs - gbs)
+    fn = len(gbs - bs)
     return tp, fp, fn
 
 
 def evaluate_belief_accuracies(beliefs, gold_beliefs):
+    # Build ontology
+    local_domain_slot_pairs = defaultdict(set)
+    domain_slot_pairs = set()
+    for bs in gold_beliefs:
+        for domain, items in bs.items():
+            local_domain_slot_pairs[domain].update(set(items.keys()))
+        domain_slot_pairs.update(set(flatten_belief_state(bs).keys()))
+
     acc_slot = Mean()
     acc_joint = Mean()
-    f1 = Mean()
+    f1 = F1()
     domain_accs = defaultdict(lambda: (Mean(), Mean(), F1()))
     for bs, gbs in zip(beliefs, gold_beliefs):
         for domain in set(chain(bs.keys(), gbs.keys())):
             domain_acc_slot, domain_acc_joint, domain_f1 = domain_accs[domain]
             gbs_data = set(gbs.get(domain, dict()).items())
             bs_data = set(bs.get(domain, dict()).items())
-            domain_acc_slot.update_state(len(gbs_data.union(bs_data)) / len(gbs_data), weight=len(gbs_data))
-            domain_acc_joint.update_state(len(gbs_data.union(bs_data)) == len(gbs_data))
+            gbs_keys = set(gbs.get(domain, dict()).keys())
+            bs_keys = set(bs.get(domain, dict()).keys())
+            domain_acc_slot.update_state(
+                (len(gbs_data.intersection(bs_data)) + len(local_domain_slot_pairs[domain] - gbs_keys - bs_keys))
+                / len(local_domain_slot_pairs[domain]))
+            domain_acc_joint.update_state(len(gbs_data.intersection(bs_data)) == len(gbs_data) and not (bs_data - gbs_data))
             domain_f1.update_state(*compute_tp_fp_fn(gbs_data, bs_data))
 
         gbs_data = set(flatten_belief_state(gbs).items())
         bs_data = set(flatten_belief_state(bs).items())
-        acc_slot.update_state(len(gbs_data.union(bs_data)) / len(gbs_data), weight=len(gbs_data))
-        acc_joint.update_state(len(gbs_data.union(bs_data)) == len(gbs_data))
+        gbs_keys = set(flatten_belief_state(gbs).keys())
+        bs_keys = set(flatten_belief_state(bs).keys())
+        acc_slot.update_state(
+            (len(gbs_data.intersection(bs_data)) + len(domain_slot_pairs - gbs_keys - bs_keys))
+            / len(domain_slot_pairs))
+        acc_joint.update_state(len(gbs_data.intersection(bs_data)) == len(gbs_data) and not (bs_data - gbs_data))
         f1.update_state(*compute_tp_fp_fn(gbs_data, bs_data))
 
-
-    result = dict(acc_avg=acc_avg(), acc_joint=acc_joint(), f1=f1())
+    result = dict(acc_slot=acc_slot(), acc_joint=acc_joint(), f1=f1())
     for d, (avg, joint, f1) in domain_accs.items():
         result[f'acc_avg_{d}'] = avg()
         result[f'acc_joint_{d}'] = joint()
@@ -50,13 +64,18 @@ def evaluate_belief_accuracies(beliefs, gold_beliefs):
     return result
 
 
+def print_results(result):
+    for k, v in result.items():
+        print(f'{k}: {float(v):.4f}')
+
+
 def analyze(predictions: GeneratedPredictions):
-    parsed_beliefs = list(map(BeliefParser(), predictions.beliefs))
-    result = evaluate_belief_accuracies(parsed_beliefs, predictions.gold_beliefs)
+    # parsed_beliefs = list(map(BeliefParser(), predictions.beliefs))
+    result = evaluate_belief_accuracies(predictions.beliefs, predictions.gold_beliefs)
     bleu = compute_bleu(predictions.delex_responses, predictions.gold_delex_responses)
     rouge = compute_rouge(predictions.delex_responses, predictions.gold_delex_responses)
     result['bleu'] = bleu
-    result['rouge'] = rouge
+    result.update(rouge)
     return result
 
 
@@ -67,9 +86,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     setup_logging()
     logger = logging.getLogger()
-    if args.resume is not None and args.model is None:
-        args.model = f'wandb:{args.resume}'
-        args.model = pull_model(args.model)
 
     if args.wandb:
         import wandb
@@ -87,3 +103,4 @@ if __name__ == '__main__':
     result = analyze(predictions)
     if wandb and wandb.run:
         wandb.run.summary.update(result)
+    print_results(result)

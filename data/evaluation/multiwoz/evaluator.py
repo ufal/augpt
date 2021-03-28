@@ -266,17 +266,20 @@ class MultiWozEvaluator(BaseEvaluator):
         return successes / float(total), matches / float(total), domain_results
 
 
+reference_regex = re.compile(r'(?:^|[^a-zA-Z0-9])(?=[A-Z0-9]{8}(?:[^a-zA-Z0-9]|$))([A-Z0-9]*[A-Z][A-Z0-9]*|0{4}\d{4})')  # noqa:E501
+
+
+def remove_reference(text):
+    def rmref(x):
+        return x.group(0).replace(x.group(1), 'REFERENCE')
+    return partial(reference_regex.sub, rmref)
+
+
 def compute_bleu_remove_reference(responses, gold_responses):
     import nltk
     responses = map(lambda x: x.lower(), responses)
     gold_responses = map(lambda x: x.lower(), gold_responses)
-    reference_regex = re.compile(r'(?:^|[^a-zA-Z0-9])(?=[A-Z0-9]{8}(?:[^a-zA-Z0-9]|$))([A-Z0-9]*[A-Z][A-Z0-9]*|0{4}\d{4})')  # noqa:E501
 
-    def remove_reference(x):
-        return x.group(0).replace(x.group(1), 'REFERENCE')
-    reference_sub = partial(reference_regex.sub, remove_reference)
-    responses = map(reference_sub, responses)
-    gold_responses = map(reference_sub, gold_responses)
     responses = list(map(nltk.tokenize.word_tokenize, responses))
     gold_responses = map(nltk.tokenize.word_tokenize, gold_responses)
     gold_responses = list(map(lambda x: [x], gold_responses))

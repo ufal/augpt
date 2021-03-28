@@ -88,7 +88,7 @@ class GeneratedPredictions:
                 bf = line[len('BF:'):]
                 bf = parser(bf)
                 assert bf is not None
-                predictions.gold_beliefs.append(bf)
+                predictions.beliefs.append(bf)
             elif line.startswith('RD:'):
                 predictions.delex_responses.append(line[len('RD:'):])
             elif line.startswith('R:'):
