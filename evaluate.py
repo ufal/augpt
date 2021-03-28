@@ -40,9 +40,10 @@ def evaluate_belief_accuracies(beliefs, gold_beliefs):
             bs_data = set(bs.get(domain, dict()).items())
             gbs_keys = set(gbs.get(domain, dict()).keys())
             bs_keys = set(bs.get(domain, dict()).keys())
-            domain_acc_slot.update_state(
-                (len(gbs_data.intersection(bs_data)) + len(local_domain_slot_pairs[domain] - gbs_keys - bs_keys))
-                / len(local_domain_slot_pairs[domain]))
+            if local_domain_slot_pairs[domain]:
+                domain_acc_slot.update_state(
+                    (len(gbs_data.intersection(bs_data)) + len(local_domain_slot_pairs[domain] - gbs_keys - bs_keys))
+                    / len(local_domain_slot_pairs[domain]))
             domain_acc_joint.update_state(len(gbs_data.intersection(bs_data)) == len(gbs_data) and not (bs_data - gbs_data))
             domain_f1.update_state(*compute_tp_fp_fn(gbs_data, bs_data))
 
