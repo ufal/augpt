@@ -244,13 +244,13 @@ class AuGPTConversationalPipeline(transformers.Pipeline):
         with self.device_placement():
             contexts = AuGPTConversationalPipeline._get_contexts_from_conversations(conversations)
             original_belief_strs = self.predictor.predict_belief(contexts)
-            orable_beliefs = [getattr(x, 'oracle_belief', None) for x in conversations]
-            orable_dbs_results = [getattr(x, 'oracle_database_results', None) for x in conversations]
+            oracle_beliefs = [getattr(x, 'oracle_belief', None) for x in conversations]
+            oracle_dbs_results = [getattr(x, 'oracle_database_results', None) for x in conversations]
             beliefs = [oracle_belief if oracle_belief is not None else self.parse_belief(belief_str)
-                       for oracle_belief, belief_str in zip(orable_beliefs, original_belief_strs)]
-            dbs_results = [orable_db if orable_db is not None else self.database(bs, return_results=True)
-                           for orable_db, bs in zip(orable_dbs_results, beliefs)]
-            dbs = [OrderedDict((k, x[0]) for k, x in db.items()) for db in dbs_results]
+                       for oracle_belief, belief_str in zip(oracle_beliefs, original_belief_strs)]
+            dbs_results = [oracle_db if oracle_db is not None else self.database(bs, return_results=True)
+                           for oracle_db, bs in zip(oracle_dbs_results, beliefs)]
+            dbs = [OrderedDict((k, x[0] if isinstance(x, tuple) else x) for k, x in db.items()) for db in dbs_results]
             delex_responses = self.predictor.predict_response(contexts, original_belief_strs, dbs)
             responses = [self._lexicalise(response, db, bf, ctx)
                          for response, bf, db, ctx in zip(delex_responses, beliefs, dbs_results, contexts)]
@@ -308,15 +308,15 @@ __old_pipeline = transformers.pipeline
 
 def augpt_pipeline(task: str, model: Optional = None, *args, **kwargs) -> transformers.Pipeline:  # noqa
     if task == 'augpt-conversational':
-        lexicalizer = kwargs.get('lexicalizer', None)
-        database = kwargs.get('database', None)
+        lexicalizer = kwargs.get('lexicalizer', 'default')
+        database = kwargs.get('database', 'default')
         config = kwargs.get('config', None)
         model_name = model
         if model_name is None:
             model_name = 'jkulhanek/augpt-mw-21'
 
         # Try to infer database and lexicalizer from model or config name (if provided as str)
-        if lexicalizer is None:
+        if lexicalizer == 'default':
             if isinstance(model_name, str):
                 lexicalizer = model_name
             elif isinstance(config, str):
@@ -328,7 +328,7 @@ def augpt_pipeline(task: str, model: Optional = None, *args, **kwargs) -> transf
                 )
             kwargs['lexicalizer'] = lexicalizer
 
-        if database is None:
+        if database == 'default':
             if isinstance(model_name, str):
                 database = model_name
             elif isinstance(config, str):
@@ -339,6 +339,7 @@ def augpt_pipeline(task: str, model: Optional = None, *args, **kwargs) -> transf
                     "Impossible to guess which database to use. "
                 )
             kwargs['database'] = database
+
     return __old_pipeline(task, model, *args, **kwargs)
 
 

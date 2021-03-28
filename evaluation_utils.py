@@ -23,6 +23,7 @@ def compute_rouge(responses, gold_responses):
     gold_responses = map(nltk.tokenize.word_tokenize, gold_responses)
     gold_responses = list(map(lambda x: [x], gold_responses))
     rouge = Rouge().get_scores(responses, gold_responses)
+    rouge = {f'{k}_{k1}': v for k, sub in rouge.items() for k1, v in sub.items()}
     return rouge
 
 

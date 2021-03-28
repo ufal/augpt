@@ -42,7 +42,7 @@ def sample_to_conversation(sample, oracle_belief=False, oracle_database_results=
     if oracle_belief:
         conversation.oracle_belief = sample.raw_belief
     if oracle_database_results:
-        conversation.database_results = sample.database
+        conversation.oracle_database_results = sample.database
     return conversation
 
 
@@ -128,7 +128,7 @@ def generate_predictions(pipeline, dataset, output_file='predictions.txt', oracl
             delex_gold_responses.append(sample.response)
             conversation = pipeline(conversation)
             belief = conversation.generated_belief
-            database = OrderedDict((d, v[0]) for d, v in conversation.database_results.items())
+            database = OrderedDict((d, v[0] if isinstance(v, tuple) else v) for d, v in conversation.database_results.items())
             sample = add_labels((sample.context, belief, database, conversation.generated_responses[-1], 1))
             print(sample.belief, file=fout)
             print(sample.database, file=fout)
@@ -163,7 +163,10 @@ if __name__ == '__main__':
         args = argparse.Namespace(**wandb.config)
 
     model_name = pull_model(args.model)
-    pipeline = transformers.pipeline('augpt-conversational', model_name, device=0 if torch.cuda.is_available() else -1)
+    pipeline_kwargs = dict(lexicalizer=None)
+    if args.oracle_db:
+        pipeline_kwargs['database'] = None
+    pipeline = transformers.pipeline('augpt-conversational', model_name, device=0 if torch.cuda.is_available() else -1, **pipeline_kwargs)
 
     # Generate
     from data import load_dataset

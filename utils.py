@@ -90,6 +90,19 @@ class Mean(Metric):
         return self.cumsum / self.samples
 
 
+class F1(Metric):
+    def reset_states(self):
+        self.tp, self.fp, self.fn = 0, 0, 0
+
+    def update_state(self, tp, fp, fn):
+        self.tp += tp
+        self.fp += fp
+        self.fn += fn
+
+    def report(self):
+        return self.tp / (self.tp + 0.5 * (self.fp + self.fn))
+
+
 class Accuracy(Mean):
     def update_state(self, y, target):
         y = y.detach()
