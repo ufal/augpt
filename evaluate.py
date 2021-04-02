@@ -5,7 +5,7 @@ from itertools import chain
 from collections import defaultdict
 from utils import setup_logging  # noqa:E402
 from utils import Mean, F1
-from evaluation_utils import compute_bleu, compute_rouge
+from evaluation_utils import compute_delexicalized_bleu, compute_delexicalized_rouge
 from generate import GeneratedPredictions
 
 
@@ -73,8 +73,8 @@ def print_results(result):
 def analyze(predictions: GeneratedPredictions):
     # parsed_beliefs = list(map(BeliefParser(), predictions.beliefs))
     result = evaluate_belief_accuracies(predictions.beliefs, predictions.gold_beliefs)
-    bleu = compute_bleu(predictions.delex_responses, predictions.gold_delex_responses)
-    rouge = compute_rouge(predictions.delex_responses, predictions.gold_delex_responses)
+    bleu = compute_delexicalized_bleu(predictions.delex_responses, predictions.gold_delex_responses)
+    rouge = compute_delexicalized_rouge(predictions.delex_responses, predictions.gold_delex_responses)
     result['bleu'] = bleu
     result.update(rouge)
     return result
