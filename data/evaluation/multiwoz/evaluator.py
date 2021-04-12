@@ -101,20 +101,21 @@ class MultiWozEvaluator(BaseEvaluator):
                     provided_requestables[domain].update(matched_requestables.intersection(requestables))
 
                 # Venues offered
-                if domain in ['restaurant', 'hotel', 'attraction', 'train']:
-                    venues = results
-                    if len(venue_offered[domain]) == 0 and venues:
-                        venue_offered[domain] = venues
-                    else:
-                        flag = False
-                        for ven in venues:
-                            if venue_offered[domain][0].get('id') == ven.get('id'):
-                                flag = True
-                                break
-                        if not flag and venues:  # sometimes there are no results so sample won't work
+                if 'name]' in response or 'id]' in response:
+                    if domain in ['restaurant', 'hotel', 'attraction', 'train']:
+                        venues = results
+                        if len(venue_offered[domain]) == 0 and venues:
                             venue_offered[domain] = venues
-                else:
-                    venue_offered[domain] = domain + '_name'
+                        else:
+                            flag = False
+                            for ven in venues:
+                                if venue_offered[domain][0].get('id') == ven.get('id'):
+                                    flag = True
+                                    break
+                            if not flag and venues:  # sometimes there are no results so sample won't work
+                                venue_offered[domain] = venues
+                    else:
+                        venue_offered[domain] = domain + '_name'
 
             # These slots are not lexicalised back, but its is not a concern
             # in multiwoz evaluation which does not take it into account

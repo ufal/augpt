@@ -68,6 +68,7 @@ class GeneratedPredictions:
 
     def is_valid(self):
         n = len(self.responses)
+        breakpoint()
         return len(self.delex_responses) == n and \
             len(self.beliefs) == n and \
             len(self.gold_responses) == n and \
@@ -75,7 +76,7 @@ class GeneratedPredictions:
             len(self.gold_beliefs) == n
 
     @classmethod
-    def load_predictions(cls, file):
+    def load_predictions(cls, file, assert_valid=True):
         predictions = cls()
         parser = BeliefParser()
         for line in file:
@@ -99,7 +100,8 @@ class GeneratedPredictions:
                 bf = parser(bf)
                 assert bf is not None
                 predictions.gold_beliefs.append(bf)
-        assert predictions.is_valid()
+        if assert_valid:
+            assert predictions.is_valid()
         return predictions
 
 

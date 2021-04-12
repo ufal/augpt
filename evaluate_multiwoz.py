@@ -11,7 +11,7 @@ from data.utils import BeliefParser, wrap_dataset_with_cache  # noqa: E402
 from data import load_dataset  # noqa: E402
 from data.evaluation.multiwoz import MultiWozEvaluator, compute_bleu_remove_reference  # noqa: E402
 from generate import generate_predictions, GeneratedPredictions  # noqa:E402
-from evaluation_utils import compute_bleu  # noqa:E402
+from evaluation_utils import compute_delexicalized_bleu  # noqa:E402
 
 
 def parse_predictions(dataset, filename):
@@ -81,7 +81,7 @@ if __name__ == '__main__':
         if not os.path.exists(path):
             path = os.path.join(args.model, args.file)
         with open(path, 'r') as f:
-            predictions = GeneratedPredictions.load_predictions(f)
+            predictions = GeneratedPredictions.load_predictions(f, assert_valid=False)
     else:
         logger.info('generating responses')
         pipeline = transformers.pipeline('augpt-conversational', args.model, device=0 if torch.cuda.is_available() else -1)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         if wandb and wandb.run:
             wandb.run.summary.update(dict(test_bleu=bleu))
 
-    delex_bleu = compute_bleu(predictions.delex_responses, predictions.gold_delex_responses)
+    delex_bleu = compute_delexicalized_bleu(predictions.delex_responses, predictions.gold_delex_responses)
     logger.info(f'test delex bleu: {delex_bleu:.4f}')
     if wandb and wandb.run:
         wandb.run.summary.update(dict(test_delex_bleu=delex_bleu))
